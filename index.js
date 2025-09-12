@@ -13,23 +13,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-const ENTRY_CHANNEL_ID = process.env.ENTRY_CHANNEL_ID;
-const GACHA_CHANNEL_ID = process.env.GACHA_CHANNEL_ID;
-const CLIENT_ID = process.env.CLIENT_ID;
-
-let gachaItems = [];
-
-const loadGacha = () => {
-  if (fs.existsSync("gacha.json")) {
-    gachaItems = JSON.parse(fs.readFileSync("gacha.json", "utf-8"));
-  }
-};
-
-const saveGacha = () => {
-  fs.writeFileSync("gacha.json", JSON.stringify(gachaItems, null, 2));
-};
-
-loadGacha();
+const CLIENT_ID = process.env.CLIENT_ID
 
 const commands = [
   new SlashCommandBuilder()
@@ -74,40 +58,6 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
     console.error(err);
   }
 })();
-
-client.on("messageCreate", (msg) => {
-  if (msg.author.bot) return;
-  if (msg.channel.id !== ENTRY_CHANNEL_ID) return;
-  if (gachaItems.find(u => u.userId === msg.author.id)) return;
-
-  gachaItems.push({
-    userId: msg.author.id,
-    tag: `${msg.author.username}#${msg.author.discriminator}`,
-    avatar: msg.author.displayAvatarURL({ dynamic: true, size: 64 }),
-    messageId: msg.id,
-    content: msg.content,
-    rarity: "未設定",
-  });
-  saveGacha();
-});
-
-client.on("messageCreate", (msg) => {
-  if (msg.author.bot) return;
-  if (msg.channel.id !== GACHA_CHANNEL_ID) return;
-  if (!msg.content.includes("メンバーガチャ")) return;
-
-  if (gachaItems.length === 0)
-    return msg.channel.send("まだ参加者がいません！");
-
-  const winner = gachaItems[Math.floor(Math.random() * gachaItems.length)];
-
-  const embed = new EmbedBuilder()
-    .setTitle("メンバーガチャ結果")
-    .setThumbnail(winner.avatar)
-    .setDescription(`**${winner.tag}**\nメッセージ: ${winner.content}\nレア度: ${winner.rarity}`);
-
-  msg.channel.send({ embeds: [embed] });
-});
 
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
